@@ -27,7 +27,6 @@ input, button, select {
 .category {
     margin: 15px 0;
 }
-
 .hidden {
     display: none;
 }
@@ -53,8 +52,8 @@ input, button, select {
 
 <h3>追加</h3>
 <input id="name" placeholder="名前">
-<input id="url" placeholder="URL（?q=付き）">
-<input id="cat" placeholder="カテゴリ">
+<input id="url" placeholder="URL（https://〜）">
+<input id="cat" placeholder="カテゴリ（空OK）">
 <button onclick="add()">追加</button>
 
 <h3>削除</h3>
@@ -99,13 +98,13 @@ const defaultData = {
     }
 };
 
-let state = JSON.parse(localStorage.getItem("portal_v3")) || {
-    data: defaultData,
+let state = JSON.parse(localStorage.getItem("portal_final")) || {
+    data: JSON.parse(JSON.stringify(defaultData)),
     defaultEngine: "Google"
 };
 
 function save() {
-    localStorage.setItem("portal_v3", JSON.stringify(state));
+    localStorage.setItem("portal_final", JSON.stringify(state));
 }
 
 function draw() {
@@ -142,17 +141,30 @@ function go(url) {
 }
 
 function add() {
-    let n = name.value.trim();
-    let u = url.value.trim();
-    let c = cat.value.trim() || "カスタム";
+    let n = document.getElementById("name").value.trim();
+    let u = document.getElementById("url").value.trim();
+    let c = document.getElementById("cat").value.trim() || "カスタム";
+
+    if (!n || !u) {
+        alert("名前とURLを入力してね");
+        return;
+    }
+
+    if (!u.startsWith("http")) {
+        alert("URLは https:// から始めてね");
+        return;
+    }
 
     if (!state.data[c]) state.data[c] = {};
 
-    if (n && u) {
-        state.data[c][n] = u;
-        save();
-        draw();
-    }
+    state.data[c][n] = u;
+
+    save();
+    draw();
+
+    document.getElementById("name").value = "";
+    document.getElementById("url").value = "";
+    document.getElementById("cat").value = "";
 }
 
 function drawDelete() {
@@ -233,54 +245,39 @@ function importConfig(e) {
 
 // HTML生成
 function generateHTML() {
-    let html = `
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>検索ポータル</title>
-</head>
-<body>
-<input id="q">
-<div id="main"></div>
-
-<script>
-let data = ${JSON.stringify(state.data)};
-let defaultEngine = "${state.defaultEngine}";
-
-function go(url){
+    let html = "<!DOCTYPE html><html><body>";
+    html += "<input id='q'><div id='main'></div><script>";
+    html += "let data=" + JSON.stringify(state.data) + ";";
+    html += "let def='" + state.defaultEngine + "';";
+    html += `
+function go(u){
  let q=document.getElementById("q").value;
- if(q) location.href=url+encodeURIComponent(q);
+ if(q) location.href=u+encodeURIComponent(q);
 }
-
-let main=document.getElementById("main");
-for(let cat in data){
+let m=document.getElementById("main");
+for(let c in data){
  let d=document.createElement("div");
- d.innerHTML="<b>"+cat+"</b><br>";
- for(let n in data[cat]){
+ d.innerHTML="<b>"+c+"</b><br>";
+ for(let n in data[c]){
   let b=document.createElement("button");
   b.textContent=n;
-  b.onclick=()=>go(data[cat][n]);
+  b.onclick=()=>go(data[c][n]);
   d.appendChild(b);
  }
- main.appendChild(d);
+ m.appendChild(d);
 }
-
 document.getElementById("q").addEventListener("keydown",e=>{
  if(e.key==="Enter"){
   for(let c in data){
-   if(data[c][defaultEngine]){
-    go(data[c][defaultEngine]);
+   if(data[c][def]){
+    go(data[c][def]);
     break;
    }
   }
  }
 });
-<\/script>
-
-</body>
-</html>
 `;
+    html += "<\/script></body></html>";
 
     let blob = new Blob([html], {type:"text/html"});
     let a = document.createElement("a");
