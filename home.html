@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索ポータル</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            margin-bottom: 30px;
+        }
+
+        .search-input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #searchInput:focus {
+            border-color: #3498db;
+        }
+
+        .search-btn {
+            padding: 12px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #2980b9;
+        }
+
+        .category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            font-size: 14px;
+            color: #555;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        .buttons-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .site-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: #333;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .site-btn:hover {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .highlight {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .search-input-wrapper {
+                flex-direction: column;
+            }
+
+            .site-btn {
+                font-size: 13px;
+                padding: 7px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 検索ポータル</h1>
+        </div>
+
+        <div class="search-box">
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" placeholder="検索キーワードを入力..." autofocus>
+                <button class="search-btn" onclick="searchDuckDuckGo()">検索</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">検索エンジン</div>
+            <div class="buttons-grid">
+                <button class="site-btn" onclick="search('google')">Google</button>
+                <button class="site-btn" onclick="search('yahoo')">Yahoo!</button>
+                <button class="site-btn highlight" onclick="search('duckduckgo')">DuckDuckGo</button>
+                <button class="site-btn" onclick="search('duckduckgolite')">DuckDuckGo Lite</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">動画・SNS</div>
+            <div class="buttons-grid">
+                <button class="site-btn" onclick="search('youtube')">YouTube</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">ショッピング</div>
+            <div class="buttons-grid">
+                <button class="site-btn" onclick="search('amazon')">Amazon</button>
+                <button class="site-btn" onclick="search('yahooショップ')">Yahoo!ショッピング</button>
+                <button class="site-btn" onclick="search('ヤフーフリマ')">ヤフーフリマ</button>
+                <button class="site-btn" onclick="search('メルカリ')">メルカリ</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">地図</div>
+            <div class="buttons-grid">
+                <button class="site-btn" onclick="search('googlemap')">Googleマップ</button>
+                <button class="site-btn" onclick="search('yahoomap')">Yahoo!地図</button>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">辞書・翻訳</div>
+            <div class="buttons-grid">
+                <button class="site-btn" onclick="search('google翻訳')">Google翻訳</button>
+                <button class="site-btn" onclick="search('wikipedia')">Wikipedia</button>
+                <button class="site-btn" onclick="search('yahoo知恵袋')">Yahoo!知恵袋</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchUrls = {
+            'google': 'https://www.google.com/search?q=',
+            'yahoo': 'https://search.yahoo.co.jp/search?p=',
+            'duckduckgo': 'https://duckduckgo.com/?q=',
+            'duckduckgolite': 'https://lite.duckduckgo.com/lite?q=',
+            'youtube': 'https://www.youtube.com/results?search_query=',
+            'amazon': 'https://www.amazon.co.jp/s?k=',
+            'yahooショップ': 'https://shopping.yahoo.co.jp/search?p=',
+            'ヤフーフリマ': 'https://paypayfleamarket.yahoo.co.jp/search/',
+            'メルカリ': 'https://jp.mercari.com/search?keyword=',
+            'googlemap': 'https://www.google.com/maps/search/',
+            'yahoomap': 'https://map.yahoo.co.jp/search?q=',
+            'google翻訳': 'https://translate.google.com/?text=',
+            'wikipedia': 'https://ja.wikipedia.org/wiki/',
+            'yahoo知恵袋': 'https://chiebukuro.yahoo.co.jp/search?p='
+        };
+
+        // Enterキーでデフォルト検索（DuckDuckGo）
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchDuckDuckGo();
+            }
+        });
+
+        function searchDuckDuckGo() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = searchUrls['duckduckgo'] + encodeURIComponent(query);
+            }
+        }
+
+        function search(site) {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = searchUrls[site] + encodeURIComponent(query);
+            }
+            // 検索ワードが空でも何もしない（アラートを表示しない）
+        }
+    </script>
+</body>
+</html>
