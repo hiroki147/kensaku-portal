@@ -1,246 +1,296 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>検索ポータル</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>検索ポータル</title>
+
+<style>
+body {
+    font-family: sans-serif;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 650px;
+    text-align: left;
+}
+
+input, button, select {
+    padding: 8px;
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.category {
+    margin: 15px 0;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>🔍 検索ポータル</h2>
+
+<input id="q" placeholder="検索..." autofocus>
+<br>
+
+<div id="main"></div>
+
+<button onclick="toggleSettings()">⚙️ 設定</button>
+
+<div id="settings" class="hidden">
+
+<h3>デフォルト検索</h3>
+<select id="defaultSelect"></select>
+
+<h3>追加</h3>
+<input id="name" placeholder="名前">
+<input id="url" placeholder="URL（?q=付き）">
+<input id="cat" placeholder="カテゴリ">
+<button onclick="add()">追加</button>
+
+<h3>削除</h3>
+<div id="deleteList"></div>
+
+<h3>設定保存</h3>
+<button onclick="exportConfig()">config書き出し</button>
+<input type="file" onchange="importConfig(event)">
+
+<h3>HTML生成</h3>
+<button onclick="generateHTML()">HTMLダウンロード</button>
+
+</div>
+
+</div>
+
+<script>
+const defaultData = {
+    "検索エンジン": {
+        "Google": "https://www.google.com/search?q=",
+        "Yahoo!": "https://search.yahoo.co.jp/search?p=",
+        "DuckDuckGo": "https://duckduckgo.com/?q=",
+        "DuckDuckGo Lite": "https://lite.duckduckgo.com/lite?q="
+    },
+    "動画・SNS": {
+        "YouTube": "https://www.youtube.com/results?search_query="
+    },
+    "ショッピング": {
+        "Amazon": "https://www.amazon.co.jp/s?k=",
+        "Yahoo!ショッピング": "https://shopping.yahoo.co.jp/search?p=",
+        "ヤフーフリマ": "https://paypayfleamarket.yahoo.co.jp/search/",
+        "メルカリ": "https://jp.mercari.com/search?keyword="
+    },
+    "地図": {
+        "Googleマップ": "https://www.google.com/maps/search/",
+        "Yahoo!地図": "https://map.yahoo.co.jp/search?q="
+    },
+    "辞書・翻訳": {
+        "Google翻訳": "https://translate.google.com/?text=",
+        "Wikipedia": "https://ja.wikipedia.org/wiki/",
+        "Yahoo!知恵袋": "https://chiebukuro.yahoo.co.jp/search?p="
+    }
+};
+
+let state = JSON.parse(localStorage.getItem("portal_v3")) || {
+    data: defaultData,
+    defaultEngine: "Google"
+};
+
+function save() {
+    localStorage.setItem("portal_v3", JSON.stringify(state));
+}
+
+function draw() {
+    const main = document.getElementById("main");
+    main.innerHTML = "";
+
+    for (let cat in state.data) {
+        if (Object.keys(state.data[cat]).length === 0) continue;
+
+        let div = document.createElement("div");
+        div.className = "category";
+
+        let title = document.createElement("div");
+        title.textContent = cat;
+        div.appendChild(title);
+
+        for (let name in state.data[cat]) {
+            let btn = document.createElement("button");
+            btn.textContent = name;
+            btn.onclick = () => go(state.data[cat][name]);
+            div.appendChild(btn);
         }
 
-        body {
-            font-family: 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        main.appendChild(div);
+    }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-        }
+    drawDelete();
+    drawSelect();
+}
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+function go(url) {
+    let q = document.getElementById("q").value.trim();
+    if (q) location.href = url + encodeURIComponent(q);
+}
 
-        h1 {
-            color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
+function add() {
+    let n = name.value.trim();
+    let u = url.value.trim();
+    let c = cat.value.trim() || "カスタム";
 
-        .search-box {
-            margin-bottom: 30px;
-        }
+    if (!state.data[c]) state.data[c] = {};
 
-        .search-input-wrapper {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+    if (n && u) {
+        state.data[c][n] = u;
+        save();
+        draw();
+    }
+}
 
-        #searchInput {
-            flex: 1;
-            padding: 12px 15px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
+function drawDelete() {
+    let div = document.getElementById("deleteList");
+    div.innerHTML = "";
 
-        #searchInput:focus {
-            border-color: #3498db;
+    for (let cat in state.data) {
+        for (let name in state.data[cat]) {
+            let b = document.createElement("button");
+            b.textContent = `削除: ${name}`;
+            b.onclick = () => {
+                delete state.data[cat][name];
+                save();
+                draw();
+            };
+            div.appendChild(b);
         }
+    }
+}
 
-        .search-btn {
-            padding: 12px 25px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: background 0.3s;
+function drawSelect() {
+    let sel = document.getElementById("defaultSelect");
+    sel.innerHTML = "";
+
+    for (let cat in state.data) {
+        for (let name in state.data[cat]) {
+            let opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            if (name === state.defaultEngine) opt.selected = true;
+            sel.appendChild(opt);
         }
+    }
 
-        .search-btn:hover {
-            background: #2980b9;
-        }
+    sel.onchange = () => {
+        state.defaultEngine = sel.value;
+        save();
+    };
+}
 
-        .category {
-            margin-bottom: 25px;
-        }
+function toggleSettings() {
+    document.getElementById("settings").classList.toggle("hidden");
+}
 
-        .category-title {
-            font-size: 14px;
-            color: #555;
-            background: #f8f9fa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-bottom: 12px;
-            font-weight: bold;
-        }
-
-        .buttons-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .site-btn {
-            padding: 8px 16px;
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            color: #333;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .site-btn:hover {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .highlight {
-            background: #fff3cd;
-            border-color: #ffc107;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
+document.getElementById("q").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        for (let cat in state.data) {
+            if (state.data[cat][state.defaultEngine]) {
+                go(state.data[cat][state.defaultEngine]);
+                break;
             }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .search-input-wrapper {
-                flex-direction: column;
-            }
-
-            .site-btn {
-                font-size: 13px;
-                padding: 7px 14px;
-            }
         }
-    </style>
+    }
+});
+
+// config書き出し
+function exportConfig() {
+    let blob = new Blob([JSON.stringify(state)], {type:"application/json"});
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "config.json";
+    a.click();
+}
+
+// config読み込み
+function importConfig(e) {
+    let file = e.target.files[0];
+    let reader = new FileReader();
+
+    reader.onload = () => {
+        state = JSON.parse(reader.result);
+        save();
+        draw();
+    };
+
+    reader.readAsText(file);
+}
+
+// HTML生成
+function generateHTML() {
+    let html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>検索ポータル</title>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 検索ポータル</h1>
-        </div>
+<input id="q">
+<div id="main"></div>
 
-        <div class="search-box">
-            <div class="search-input-wrapper">
-                <input type="text" id="searchInput" placeholder="検索キーワードを入力..." autofocus>
-                <button class="search-btn" onclick="searchDuckDuckGo()">検索</button>
-            </div>
-        </div>
+<script>
+let data = ${JSON.stringify(state.data)};
+let defaultEngine = "${state.defaultEngine}";
 
-        <div class="category">
-            <div class="category-title">検索エンジン</div>
-            <div class="buttons-grid">
-                <button class="site-btn" onclick="search('google')">Google</button>
-                <button class="site-btn" onclick="search('yahoo')">Yahoo!</button>
-                <button class="site-btn highlight" onclick="search('duckduckgo')">DuckDuckGo</button>
-                <button class="site-btn" onclick="search('duckduckgolite')">DuckDuckGo Lite</button>
-            </div>
-        </div>
+function go(url){
+ let q=document.getElementById("q").value;
+ if(q) location.href=url+encodeURIComponent(q);
+}
 
-        <div class="category">
-            <div class="category-title">動画・SNS</div>
-            <div class="buttons-grid">
-                <button class="site-btn" onclick="search('youtube')">YouTube</button>
-            </div>
-        </div>
+let main=document.getElementById("main");
+for(let cat in data){
+ let d=document.createElement("div");
+ d.innerHTML="<b>"+cat+"</b><br>";
+ for(let n in data[cat]){
+  let b=document.createElement("button");
+  b.textContent=n;
+  b.onclick=()=>go(data[cat][n]);
+  d.appendChild(b);
+ }
+ main.appendChild(d);
+}
 
-        <div class="category">
-            <div class="category-title">ショッピング</div>
-            <div class="buttons-grid">
-                <button class="site-btn" onclick="search('amazon')">Amazon</button>
-                <button class="site-btn" onclick="search('yahooショップ')">Yahoo!ショッピング</button>
-                <button class="site-btn" onclick="search('ヤフーフリマ')">ヤフーフリマ</button>
-                <button class="site-btn" onclick="search('メルカリ')">メルカリ</button>
-            </div>
-        </div>
+document.getElementById("q").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){
+  for(let c in data){
+   if(data[c][defaultEngine]){
+    go(data[c][defaultEngine]);
+    break;
+   }
+  }
+ }
+});
+<\/script>
 
-        <div class="category">
-            <div class="category-title">地図</div>
-            <div class="buttons-grid">
-                <button class="site-btn" onclick="search('googlemap')">Googleマップ</button>
-                <button class="site-btn" onclick="search('yahoomap')">Yahoo!地図</button>
-            </div>
-        </div>
+</body>
+</html>
+`;
 
-        <div class="category">
-            <div class="category-title">辞書・翻訳</div>
-            <div class="buttons-grid">
-                <button class="site-btn" onclick="search('google翻訳')">Google翻訳</button>
-                <button class="site-btn" onclick="search('wikipedia')">Wikipedia</button>
-                <button class="site-btn" onclick="search('yahoo知恵袋')">Yahoo!知恵袋</button>
-            </div>
-        </div>
-    </div>
+    let blob = new Blob([html], {type:"text/html"});
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "portal.html";
+    a.click();
+}
 
-    <script>
-        const searchUrls = {
-            'google': 'https://www.google.com/search?q=',
-            'yahoo': 'https://search.yahoo.co.jp/search?p=',
-            'duckduckgo': 'https://duckduckgo.com/?q=',
-            'duckduckgolite': 'https://lite.duckduckgo.com/lite?q=',
-            'youtube': 'https://www.youtube.com/results?search_query=',
-            'amazon': 'https://www.amazon.co.jp/s?k=',
-            'yahooショップ': 'https://shopping.yahoo.co.jp/search?p=',
-            'ヤフーフリマ': 'https://paypayfleamarket.yahoo.co.jp/search/',
-            'メルカリ': 'https://jp.mercari.com/search?keyword=',
-            'googlemap': 'https://www.google.com/maps/search/',
-            'yahoomap': 'https://map.yahoo.co.jp/search?q=',
-            'google翻訳': 'https://translate.google.com/?text=',
-            'wikipedia': 'https://ja.wikipedia.org/wiki/',
-            'yahoo知恵袋': 'https://chiebukuro.yahoo.co.jp/search?p='
-        };
+draw();
+</script>
 
-        // Enterキーでデフォルト検索（DuckDuckGo）
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchDuckDuckGo();
-            }
-        });
-
-        function searchDuckDuckGo() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (query) {
-                window.location.href = searchUrls['duckduckgo'] + encodeURIComponent(query);
-            }
-        }
-
-        function search(site) {
-            const query = document.getElementById('searchInput').value.trim();
-            if (query) {
-                window.location.href = searchUrls[site] + encodeURIComponent(query);
-            }
-            // 検索ワードが空でも何もしない（アラートを表示しない）
-        }
-    </script>
 </body>
 </html>
